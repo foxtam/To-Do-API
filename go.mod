@@ -1,3 +1,3 @@
-module To-Do-API
+module github.com/foxtam/To-Do-API
 
 go 1.25
