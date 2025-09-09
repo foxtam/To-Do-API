@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type Task struct {
@@ -15,6 +16,7 @@ type Task struct {
 	Done  *bool   `json:"done"`
 }
 
+var mu sync.Mutex
 var tasks = make(map[int]*Task)
 var currentID int
 
@@ -39,7 +41,9 @@ func handleTasksByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mu.Lock()
 	taskPtr, ok := tasks[id]
+	mu.Unlock()
 	if !ok {
 		http.Error(w, "No such taskPtr id", http.StatusBadRequest)
 		return
@@ -54,6 +58,7 @@ func handleTasksByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		mu.Lock()
 		if updatedTask.Title != nil {
 			if *updatedTask.Title == "" {
 				http.Error(w, "Title is required", http.StatusBadRequest)
@@ -64,12 +69,15 @@ func handleTasksByID(w http.ResponseWriter, r *http.Request) {
 		if updatedTask.Done != nil {
 			taskPtr.Done = updatedTask.Done
 		}
+		mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(taskPtr)
 
 	case http.MethodDelete:
+		mu.Lock()
 		delete(tasks, id)
+		mu.Unlock()
 
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -80,7 +88,9 @@ func handleTasks(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Content-Type", "application/json")
+		mu.Lock()
 		_ = json.NewEncoder(w).Encode(tasks)
+		mu.Unlock()
 
 	case http.MethodPost:
 		var newTask Task
@@ -90,8 +100,6 @@ func handleTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		currentID++
-		newTask.ID = currentID
 		if newTask.Title == nil || *newTask.Title == "" {
 			http.Error(w, "Title is required", http.StatusBadRequest)
 			return
@@ -99,7 +107,12 @@ func handleTasks(w http.ResponseWriter, r *http.Request) {
 		if newTask.Done == nil {
 			newTask.Done = new(bool)
 		}
+
+		mu.Lock()
+		currentID++
+		newTask.ID = currentID
 		tasks[currentID] = &newTask
+		mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(newTask)
