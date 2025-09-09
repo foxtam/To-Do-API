@@ -39,9 +39,9 @@ func handleTasksByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, ok := tasks[id]
+	taskPtr, ok := tasks[id]
 	if !ok {
-		http.Error(w, "No such task id", http.StatusBadRequest)
+		http.Error(w, "No such taskPtr id", http.StatusBadRequest)
 		return
 	}
 
@@ -59,14 +59,14 @@ func handleTasksByID(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Title is required", http.StatusBadRequest)
 				return
 			}
-			task.Title = updatedTask.Title
+			taskPtr.Title = updatedTask.Title
 		}
 		if updatedTask.Done != nil {
-			task.Done = updatedTask.Done
+			taskPtr.Done = updatedTask.Done
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(task)
+		_ = json.NewEncoder(w).Encode(taskPtr)
 
 	case http.MethodDelete:
 		delete(tasks, id)
