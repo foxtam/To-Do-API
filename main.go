@@ -16,7 +16,7 @@ type Task struct {
 	Done  *bool   `json:"done"`
 }
 
-var mu sync.Mutex
+var mu sync.RWMutex
 var tasks = make(map[int]*Task)
 var currentID int
 
@@ -41,9 +41,9 @@ func handleTasksByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mu.Lock()
+	mu.RLock()
 	taskPtr, ok := tasks[id]
-	mu.Unlock()
+	mu.RUnlock()
 	if !ok {
 		http.Error(w, "No such taskPtr id", http.StatusBadRequest)
 		return
@@ -88,9 +88,9 @@ func handleTasks(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Content-Type", "application/json")
-		mu.Lock()
+		mu.RLock()
 		_ = json.NewEncoder(w).Encode(tasks)
-		mu.Unlock()
+		mu.RUnlock()
 
 	case http.MethodPost:
 		var newTask Task
